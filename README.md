@@ -1,12 +1,2 @@
-```
-npm install
-npm run dev
-```
-
-```
-open http://localhost:8788
-```
-
-```
-npm run deploy
-```
+frontend is all empty
+ofc backend is first 
