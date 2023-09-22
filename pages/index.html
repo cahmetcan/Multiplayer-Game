@@ -1,11 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-  </head>
-  <body>
-    <p>
-      <a href="/api/hello">/api/hello</a>
-    </p>
-  </body>
+
+<head>
+  <meta charset="utf-8" />
+</head>
+
+<body>
+  <canvas id="playground" width="1000" height="700"></canvas>
+</body>
+<script>
+  var c = document.getElementById("playground");
+  c.style.border = "2px solid #000";
+
+  var ctx = c.getContext("2d");
+
+  ctx.beginPath();
+  var x = 100
+  var y = 100
+  // x , y , radius , start angle , end angle
+  ctx.arc(x, y, 5, 0, 2 * Math.PI);
+  ctx.stroke();
+
+  // when presses w , a , s , d
+  document.addEventListener("keydown", function (event) {
+    if (event.keyCode == 87) {
+      // w
+      y -= 10
+    } else if (event.keyCode == 83) {
+      // s
+      y += 10
+    } else if (event.keyCode == 65) {
+      // a
+      x -= 10
+    } else if (event.keyCode == 68) {
+      // d
+      x += 10
+    }
+
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+    ctx.stroke();
+  });
+
+</script>
+
 </html>
