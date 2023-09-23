@@ -1,15 +1,15 @@
 import { Game } from "../game";
 import { IUser } from "../user/types";
 
-export class DurableObject {
+export class GameDurableObject {
   state: DurableObjectState;
   users: Map<WebSocket, IUser>;
-  rooms: Map<string, Game>;
+  roomId: number;
 
   constructor(state: DurableObjectState) {
     this.state = state;
     this.users = new Map();
-    this.rooms = new Map();
+    this.roomId = Math.floor(Math.random() * 10000);
   }
 
   async fetch(request: Request) {
@@ -23,10 +23,14 @@ export class DurableObject {
     };
     this.validateUser(user);
 
-    const room = this.rooms.get(roomId);
-    if (!room) {
-      this.rooms.set(roomId, new Game(5));
+    if (roomId) {
+      
     }
+
+    const pair = new WebSocketPair();
+		const [client, server] = Object.values(pair);
+
+		return new Response(null, { status: 101, webSocket: client });
   }
 
   public async validateUser(user: IUser) {
