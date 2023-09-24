@@ -52,7 +52,6 @@ export class GameDurableObject {
     this.state.acceptWebSocket(webSocket, [roomId]);
 
     const existingUser = this.rooms.get(roomId)?.users.get(user.name);
-    webSocket.send("you logged in already");
 
     if (!existingUser) {
       this.users.set(webSocket, {
@@ -61,6 +60,9 @@ export class GameDurableObject {
         ws: webSocket,
       });
       this.rooms.get(roomId)?.addUser(user, webSocket);
+      webSocket.send(
+        JSON.stringify(this.rooms.get(roomId)?.users.get(user.name))
+      );
     }
   }
 
