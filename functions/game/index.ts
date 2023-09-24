@@ -9,44 +9,45 @@ export class Game {
     this.users = new Map();
   }
 
-  addUser(user: IUser) {
+  addUser(user: IUser, ws: WebSocket) {
     const player = {
       data: user,
+      ws: ws,
       score: 0,
       x: Math.floor(Math.random() * 100),
       y: Math.floor(Math.random() * 100),
     };
 
-    this.users.set(user.id, player);
+    this.users.set(user.name, player);
   }
 
   removeUser(user: IUser) {
-    this.users.delete(user.id);
+    this.users.delete(user.name);
   }
 
   moveUp(user: IUser) {
-    const player = this.users.get(user.id);
+    const player = this.users.get(user.name);
     if (!player) return;
 
     player.y -= 1;
   }
 
   moveDown(user: IUser) {
-    const player = this.users.get(user.id);
+    const player = this.users.get(user.name);
     if (!player) return;
 
     player.y += 1;
   }
 
   moveLeft(user: IUser) {
-    const player = this.users.get(user.id);
+    const player = this.users.get(user.name);
     if (!player) return;
 
     player.x -= 1;
   }
 
   moveRight(user: IUser) {
-    const player = this.users.get(user.id);
+    const player = this.users.get(user.name);
     if (!player) return;
 
     player.x += 1;
