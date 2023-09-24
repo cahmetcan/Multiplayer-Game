@@ -21,20 +21,20 @@ get available rooms endpoints
 get user data endpoint
 */
 
-app.get("/play/:room", async (c) => {
+app.get("/play", async (c) => {
   try {
-    const { DurableObject, ROOMS } = c.env;
-    const room = c.req.param("room");
-
-    if (!room) return new Response("Missing room id", { status: 400 });
-
-    const DurableObjectId = DurableObject.idFromName(room);
-    const DurableObjectStub = DurableObject.get(DurableObjectId);
-
-    if (!(await ROOMS.get(room))) ROOMS.put(room, DurableObjectId.toString());
-
     if (c.req.header("upgrade") !== "websocket")
       return new Response("Not a websocket request", { status: 400 });
+
+    const { DurableObject, ROOMS } = c.env;
+    const userCountry = c.req.raw.cf?.country as string;
+
+    const DurableObjectId = DurableObject.idFromName(userCountry);
+    const DurableObjectStub = DurableObject.get(DurableObjectId);
+
+    if (!(await ROOMS.get(userCountry)))
+      ROOMS.put(userCountry, DurableObjectId.toString());
+
     const request = new Request(c.req.url, {
       headers: c.req.header(),
     });
@@ -45,7 +45,7 @@ app.get("/play/:room", async (c) => {
   }
 });
 
-app.get("/rooms", async (c) => {
+app.get("/servers", async (c) => {
   // TODO: add prefix search
   try {
     const { ROOMS } = c.env;
@@ -54,9 +54,10 @@ app.get("/rooms", async (c) => {
       prefix: "",
     });
 
-    return new Response(JSON.stringify(rooms.keys), {
-      headers: { "Content-Type": "application/json" },
-    }); 
+    return c.json({
+      rooms: JSON.stringify(rooms.keys),
+      userData: c.req.raw.cf?.country,
+    });
   } catch (error: any) {
     return new Response(error.message, { status: 500 });
   }

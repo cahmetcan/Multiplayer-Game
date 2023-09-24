@@ -1,19 +1,12 @@
 import { IUser } from "../user/types";
 import { IPlayer } from "./type";
 
-type Env = {
-  ROOMS: KVNamespace;
-};
 export class Game {
   users: Map<string, IPlayer> = new Map();
   status: "playing" | "ended" = "playing";
 
-  constructor(minutes: number, env: Env) {
+  constructor(minutes: number) {
     this.users = new Map();
-
-    setTimeout(() => {
-      this.end(env, roomId);
-    }, 1 * 60 * 1000);
   }
 
   addUser(user: IUser) {
@@ -30,14 +23,6 @@ export class Game {
   removeUser(user: IUser) {
     this.users.delete(user.id);
   }
-
-  /*   moveUser(user: IUser, x: number, y: number) { // security issue here - user can send any x and y
-    const player = this.users.get(user.id);
-    if (!player) return;
-
-    player.x = x;
-    player.y = y;
-  } */
 
   moveUp(user: IUser) {
     const player = this.users.get(user.id);
@@ -67,17 +52,18 @@ export class Game {
     player.x += 1;
   }
 
-  end(env: Env, roomId: string) {
+  /*   end(roomId: string) {
     console.log("Game is over!");
 
-    env.ROOMS.delete(roomId);
+    // kill everything in this object
+    this.users.clear();
 
     this.status = "ended";
     return {
       winner: this.getScores()[0],
       users: this.getScores(),
     };
-  }
+  } */
 
   getScores() {
     const players = Array.from(this.users.values());
