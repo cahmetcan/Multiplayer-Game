@@ -68,6 +68,7 @@ export class GameDurableObject {
 
   async webSocketMessage(ws: WebSocket, message: String | ArrayBuffer) {
     const msg = message.toString();
+    console.log("new messaage", msg);
 
     const player = this.users.get(ws) as Player;
 
@@ -80,11 +81,25 @@ export class GameDurableObject {
 
       ws.send(JSON.stringify(game.getScores()));
     }
+
+    if (msg === "rooms") {
+      const rooms = Array.from(this.rooms.keys());
+      console.log("rooms", rooms);
+      ws.send(JSON.stringify(rooms));
+    }
+
+    if (msg === "w") {
+      this.rooms.get(player.room)?.moveUp(player.data);
+
+      ws.send(
+        JSON.stringify(this.rooms.get(player.room)?.users.get(player.data.name))
+      );
+    }
   }
 
   public async validateUser(user: IUser, roomId: string) {
     /*     const isUsernameTaken = this.rooms.get(roomId)?.users.forEach((player) => {
-      if (player.data.name === user.name) {
+      if (player.data.name  === user.name) {
         return true;
       }
     });
