@@ -21,6 +21,20 @@ export class Game {
     this.users.set(user.name, player);
   }
 
+  userCoordinates() {
+    this.users.forEach((player) => {
+      player.ws.send(
+        JSON.stringify({
+          type: "coordinates",
+          data: {
+            x: player.x,
+            y: player.y,
+          },
+        })
+      );
+    });
+  }
+
   removeUser(user: IUser) {
     this.users.delete(user.name);
   }
@@ -29,14 +43,14 @@ export class Game {
     const player = this.users.get(user.name);
     if (!player) return;
 
-    player.y -= 1;
+    player.y += 1;
   }
 
   moveDown(user: IUser) {
     const player = this.users.get(user.name);
     if (!player) return;
 
-    player.y += 1;
+    player.y -= 1;
   }
 
   moveLeft(user: IUser) {

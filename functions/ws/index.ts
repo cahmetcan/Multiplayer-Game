@@ -17,7 +17,7 @@ export class GameDurableObject {
   rooms: Map<string, Game>;
   users: Map<WebSocket, Player>;
 
-  constructor(state: DurableObjectState, env: Env) {
+  constructor(state: DurableObjectState) {
     this.state = state;
     this.rooms = new Map();
     this.users = new Map();
@@ -50,6 +50,25 @@ export class GameDurableObject {
 
   async connection(webSocket: WebSocket, roomId: string, user: IUser) {
     this.state.acceptWebSocket(webSocket, [roomId]);
+
+    console.log("new connection", roomId, user);
+/*     setInterval(() => {
+      const game = this.rooms.get(roomId);
+      if (!game) {
+        return;
+      }
+
+      const scores = game.getScores();
+      const message = JSON.stringify({
+        type: "scores",
+        data: scores,
+      });
+
+      const users = JSON.stringify(game.userCoordinates());
+
+      this.broadcast(roomId, message);
+      this.broadcast(roomId, users);
+    }, 1000); */
 
     const existingUser = this.rooms.get(roomId)?.users.get(user.name);
 
@@ -89,7 +108,35 @@ export class GameDurableObject {
     }
 
     if (msg === "w") {
+      console.log("move up");
       this.rooms.get(player.room)?.moveUp(player.data);
+
+      ws.send(
+        JSON.stringify(this.rooms.get(player.room)?.users.get(player.data.name))
+      );
+    }
+
+    if (msg === "s") {
+      console.log("move down");
+      this.rooms.get(player.room)?.moveDown(player.data);
+
+      ws.send(
+        JSON.stringify(this.rooms.get(player.room)?.users.get(player.data.name))
+      );
+    }
+
+    if (msg === "a") {
+      console.log("move left");
+      this.rooms.get(player.room)?.moveLeft(player.data);
+
+      ws.send(
+        JSON.stringify(this.rooms.get(player.room)?.users.get(player.data.name))
+      );
+    }
+
+    if (msg === "d") {
+      console.log("move right");
+      this.rooms.get(player.room)?.moveRight(player.data);
 
       ws.send(
         JSON.stringify(this.rooms.get(player.room)?.users.get(player.data.name))
@@ -97,6 +144,16 @@ export class GameDurableObject {
     }
   }
 
+  async broadcast(roomId: string, message: string) {
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      return;
+    }
+
+    room.users.forEach((player) => {
+      player.ws.send(message);
+    });
+  }
   public async validateUser(user: IUser, roomId: string) {
     /*     const isUsernameTaken = this.rooms.get(roomId)?.users.forEach((player) => {
       if (player.data.name  === user.name) {

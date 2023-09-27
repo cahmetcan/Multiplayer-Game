@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { IUser } from "./user/types";
 export { GameDurableObject } from "./ws";
+import { cors } from "hono/cors";
 
 type Bindings = {
   DurableObject: DurableObjectNamespace;
@@ -20,6 +21,8 @@ play game endpoint
 get available rooms endpoints
 get user data endpoint
 */
+
+app.get("*", cors());
 
 app.get("/play", async (c) => {
   try {
@@ -48,7 +51,10 @@ app.get("/play", async (c) => {
 app.get("/servers", async (c) => {
   // TODO: add prefix search
   try {
-    const { ROOMS } = c.env;
+    const { ROOMS, DurableObject } = c.env;
+    const userCountry = c.req.raw.cf?.country as string;
+    const DurableObjectId = DurableObject.idFromName(userCountry);
+    const DurableObjectStub = DurableObject.get(DurableObjectId);
 
     const rooms = await ROOMS.list({
       prefix: "",
