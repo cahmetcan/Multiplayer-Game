@@ -27,6 +27,7 @@ export class GameDurableObject {
     const url = new URL(request.url);
     const roomId = url.searchParams.get("room") || "";
     const name = url.searchParams.get("name") || "";
+    console.log("new fetch", roomId, name);
 
     const user: IUser = {
       name: name,
@@ -52,7 +53,7 @@ export class GameDurableObject {
     this.state.acceptWebSocket(webSocket, [roomId]);
 
     console.log("new connection", roomId, user);
-/*     setInterval(() => {
+    setInterval(() => {
       const game = this.rooms.get(roomId);
       if (!game) {
         return;
@@ -68,7 +69,7 @@ export class GameDurableObject {
 
       this.broadcast(roomId, message);
       this.broadcast(roomId, users);
-    }, 1000); */
+    }, 1000);
 
     const existingUser = this.rooms.get(roomId)?.users.get(user.name);
 
@@ -142,6 +143,45 @@ export class GameDurableObject {
         JSON.stringify(this.rooms.get(player.room)?.users.get(player.data.name))
       );
     }
+  }
+
+  async webSocketClose(
+    ws: WebSocket,
+    code: number,
+    reason: string,
+    wasClean: boolean
+  ) {
+    const player = this.users.get(ws) as Player;
+    const game = this.rooms.get(player.room);
+
+    if (!game) return;
+
+    ws.send(
+      JSON.stringify({
+        type: "Your score is deleted",
+        user: player.data.name,
+        score: game.users.get(player.data.name)?.score,
+        code,
+        closeReason: reason,
+        wasClean,
+      })
+    );
+    if (wasClean === true) {
+      game.removeUser(player.data);
+      this.users.delete(ws);
+    }
+  }
+
+  async webSocketError(ws: WebSocket, error: any) {
+    console.log("error", error);
+
+    const player = this.users.get(ws) as Player;
+    const game = this.rooms.get(player.room);
+
+    if (!game) return;
+
+    game.removeUser(player.data);
+    this.users.delete(ws);
   }
 
   async broadcast(roomId: string, message: string) {

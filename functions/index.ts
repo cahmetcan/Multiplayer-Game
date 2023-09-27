@@ -16,19 +16,15 @@ declare module "hono" {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-/* 
+/*
 play game endpoint
 get available rooms endpoints
 get user data endpoint
 */
 
-app.get("*", cors());
 
 app.get("/play", async (c) => {
   try {
-    if (c.req.header("upgrade") !== "websocket")
-      return new Response("Not a websocket request", { status: 400 });
-
     const { DurableObject, ROOMS } = c.env;
     const userCountry = c.req.raw.cf?.country as string;
 
@@ -37,6 +33,9 @@ app.get("/play", async (c) => {
 
     if (!(await ROOMS.get(userCountry)))
       ROOMS.put(userCountry, DurableObjectId.toString());
+
+    if (c.req.header("upgrade") !== "websocket")
+      return new Response("Not a websocket request", { status: 400 });
 
     const request = new Request(c.req.url, {
       headers: c.req.header(),
@@ -47,6 +46,8 @@ app.get("/play", async (c) => {
     return new Response(error.message, { status: 500 });
   }
 });
+
+app.get("*", cors());
 
 app.get("/servers", async (c) => {
   // TODO: add prefix search
