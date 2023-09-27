@@ -1,5 +1,10 @@
-import { Game } from "../game";
+import { Directions, Game } from "../game";
 import { IUser } from "../user/types";
+
+type Inputs = {
+  type: string;
+  data?: any;
+};
 
 type Player = {
   ws: WebSocket;
@@ -27,14 +32,11 @@ export class GameDurableObject {
     const url = new URL(request.url);
     const roomId = url.searchParams.get("room") || "";
     const name = url.searchParams.get("name") || "";
-    console.log("new fetch", roomId, name);
 
     const user: IUser = {
       name: name,
       color: url.searchParams.get("color") || "",
     };
-
-    this.validateUser(user, roomId);
 
     const room = this.rooms.get(roomId);
     if (!room) {
@@ -45,32 +47,22 @@ export class GameDurableObject {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     await this.connection(server, roomId, user);
+    server.send(
+      JSON.stringify({
+        type: roomId,
+        game: room,
+        status: room?.status,
+      })
+    );
 
     return new Response(null, { status: 101, webSocket: client });
   }
 
   async connection(webSocket: WebSocket, roomId: string, user: IUser) {
     this.state.acceptWebSocket(webSocket, [roomId]);
-
-    console.log("new connection", roomId, user);
-    setInterval(() => {
-      const game = this.rooms.get(roomId);
-      if (!game) {
-        return;
-      }
-
-      const scores = game.getScores();
-      const message = JSON.stringify({
-        type: "scores",
-        data: scores,
-      });
-
-      const users = JSON.stringify(game.userCoordinates());
-
-      this.broadcast(roomId, message);
-      this.broadcast(roomId, users);
-    }, 1000);
-
+    const game = this.rooms.get(roomId);
+    console.log("user count ->", game?.users.size);
+    webSocket.send("welcome to game room " + roomId + " " + user.name);
     const existingUser = this.rooms.get(roomId)?.users.get(user.name);
 
     if (!existingUser) {
@@ -87,28 +79,33 @@ export class GameDurableObject {
   }
 
   async webSocketMessage(ws: WebSocket, message: String | ArrayBuffer) {
-    const msg = message.toString();
-    console.log("new messaage", msg);
-
+    console.log("message", message);
+    const input = message.toString();
+    const msg = JSON.parse(input) as Inputs;
     const player = this.users.get(ws) as Player;
+    const game = this.rooms.get(player.room);
+    if (!game) return;
 
-    if (msg === "getAll") {
-      const game = this.rooms.get(player.room);
-
-      if (!game) {
-        return;
-      }
-
+    if (msg.type === "getAll") {
       ws.send(JSON.stringify(game.getScores()));
     }
 
-    if (msg === "rooms") {
-      const rooms = Array.from(this.rooms.keys());
-      console.log("rooms", rooms);
-      ws.send(JSON.stringify(rooms));
+    if (msg.type === "move" && Object.values(Directions).includes(msg.data)) {
+      game.move(player.data, msg.data);
+      const user = game.getUser(player.data.name);
+      ws.send(
+        "You moved " +
+          msg.data +
+          " direction." +
+          "new coordinates -> " +
+          JSON.stringify({
+            x: user?.x,
+            y: user?.y,
+          })
+      );
     }
 
-    if (msg === "w") {
+    /*     if (msg === "w") {
       console.log("move up");
       this.rooms.get(player.room)?.moveUp(player.data);
 
@@ -138,11 +135,11 @@ export class GameDurableObject {
     if (msg === "d") {
       console.log("move right");
       this.rooms.get(player.room)?.moveRight(player.data);
-
       ws.send(
         JSON.stringify(this.rooms.get(player.room)?.users.get(player.data.name))
-      );
-    }
+        );
+      }
+      */
   }
 
   async webSocketClose(
@@ -193,20 +190,5 @@ export class GameDurableObject {
     room.users.forEach((player) => {
       player.ws.send(message);
     });
-  }
-  public async validateUser(user: IUser, roomId: string) {
-    /*     const isUsernameTaken = this.rooms.get(roomId)?.users.forEach((player) => {
-      if (player.data.name  === user.name) {
-        return true;
-      }
-    });
-
-    if (isUsernameTaken) {
-      return new Response("Username already taken", { status: 400 });
-    }
- */
-    if (user.name === "" || user.color === "") {
-      return new Response("Missing query parameters", { status: 400 });
-    }
   }
 }
