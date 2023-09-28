@@ -50,7 +50,16 @@ export class GameDurableObject {
     this.state.acceptWebSocket(webSocket, [roomId]);
     const game = this.rooms.get(roomId);
     if (!game) return;
+/*     if (game.status === "ended") {
+      webSocket.send("This game has already ended");
+      return webSocket.close();
+    } */
     this.users.set(webSocket, { ws: webSocket, data: user, room: roomId });
+
+    if (game.users.has(user.name)) {
+      webSocket.send("This name is already taken");
+      return webSocket.close();
+    }
 
     const allCoordinatesAnnouncement = game.userCoordinates();
     webSocket.send(JSON.stringify(allCoordinatesAnnouncement));
