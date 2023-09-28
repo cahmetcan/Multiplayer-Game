@@ -1,7 +1,7 @@
 const WebSocket = require("ws");
 
 const url = "wss://agario.ahmetcanisik5458675.workers.dev/play";
-const localUrl = "ws://0.0.0.0:8787/play?name=bediran&roomId=112";
+const localUrl = "ws://0.0.0.0:8787/play?name=bediran&room=112";
 const ws = new WebSocket(localUrl);
 
 ws.onopen = () => {
@@ -17,7 +17,7 @@ setTimeout(() => {
   ws.send(
     JSON.stringify({
       type: "move",
-      data: "w",
+      data: "a",
     })
   );
 }, 2000);

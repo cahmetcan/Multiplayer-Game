@@ -1,7 +1,8 @@
 import { IUser } from "../user/types";
 
 type IPlayer = {
-  data: IUser;
+  name: string;
+  color: string;
   score: number;
   ws: WebSocket;
   x: number;

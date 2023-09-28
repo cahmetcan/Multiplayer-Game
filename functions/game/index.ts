@@ -1,10 +1,16 @@
-import { IUser } from "../user/types";
+import {
+  IUser,
+  ResponseAllCoordinates,
+  ResponseNewUser,
+  ResponseRemoveUser,
+  ResponseMove,
+} from "../user/types";
 import { IPlayer } from "./type";
 
 export enum Directions {
   up = "w",
-  down = "a",
-  left = "s",
+  down = "s",
+  left = "a",
   right = "d",
 }
 export class Game {
@@ -12,6 +18,7 @@ export class Game {
   status: "playing" | "ended" = "playing";
 
   constructor(minutes: number) {
+    this.status = "playing";
     this.users = new Map();
   }
 
@@ -19,41 +26,46 @@ export class Game {
     return this.users.get(name);
   }
 
-  addUser(user: IUser, ws: WebSocket) {
-    const player = {
-      data: user,
+  addUser(user: IUser, ws: WebSocket): ResponseNewUser {
+    const player: IPlayer = {
+      name: user.name,
+      color: user.color,
       ws: ws,
       score: 0,
-      x: Math.floor(Math.random() * 100),
-      y: Math.floor(Math.random() * 100),
+      x: Math.floor(Math.random() * 500),
+      y: Math.floor(Math.random() * 500),
     };
 
-    console.log("new user adding");
-    console.log(player);
     this.users.set(user.name, player);
-    ws.send(
-      "You added to game room. You can start playing. You can use arrow keys to move."
-    );
-    console.log("user count is now -> " + this.users.size);
-    this.broadcast("New user added to game room." + user.name);
 
-    ws.send(this.userCoordinates());
+    return {
+      type: "newUser",
+      data: {
+        name: user.name,
+        color: user.color,
+        x: player.x,
+        y: player.y,
+      },
+    };
   }
 
-  userCoordinates() {
+  userCoordinates(): ResponseAllCoordinates {
     const players = Array.from(this.users.values());
-    return JSON.stringify({
+
+    return {
       type: "allCoordinates",
       data: players.map((player) => ({
-        user: player.data.name,
+        name: player.name,
+        color: player.color,
         x: player.x,
         y: player.y,
       })),
-    });
+    };
   }
-  move(user: IUser, direction: Directions) {
+
+  move(user: IUser, direction: Directions): ResponseMove {
     const player = this.users.get(user.name);
-    if (!player) return;
+    if (!player) throw new Error("Player not found");
 
     if (direction === Directions.up) {
       player.y += 1;
@@ -68,33 +80,33 @@ export class Game {
       player.x += 1;
     }
 
-    this.broadcast(
-      JSON.stringify({
-        type: "coordinates",
-        data: {
-          user: user.name,
-          x: player.x,
-          y: player.y,
-        },
-      })
-    );
-  }
-  removeUser(user: IUser) {
-    this.users.delete(user.name);
-  }
+    this.users.set(user.name, player);
 
-  /*   end(roomId: string) {
-    console.log("Game is over!");
-
-    // kill everything in this object
-    this.users.clear();
-
-    this.status = "ended";
     return {
-      winner: this.getScores()[0],
-      users: this.getScores(),
+      type: "move",
+      data: {
+        name: user.name,
+        x: player.x,
+        y: player.y,
+        color: user.color,
+      },
     };
-  } */
+  }
+
+  removeUser(user: IUser): ResponseRemoveUser {
+    this.users.delete(user.name);
+    const player = this.users.get(user.name);
+
+    return {
+      type: "removeUser",
+      data: {
+        name: user.name,
+        color: user.color,
+        x: player?.x || 100,
+        y: player?.y || 100,
+      },
+    };
+  }
 
   getScores() {
     const players = Array.from(this.users.values());

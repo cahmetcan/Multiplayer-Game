@@ -12,11 +12,6 @@ type Player = {
   room: string;
 };
 
-type Env = {
-  DurableObject: DurableObjectNamespace;
-  ROOMS: KVNamespace;
-};
-
 export class GameDurableObject {
   state: DurableObjectState;
   rooms: Map<string, Game>;
@@ -47,13 +42,6 @@ export class GameDurableObject {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     await this.connection(server, roomId, user);
-    server.send(
-      JSON.stringify({
-        type: roomId,
-        game: room,
-        status: room?.status,
-      })
-    );
 
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -61,85 +49,32 @@ export class GameDurableObject {
   async connection(webSocket: WebSocket, roomId: string, user: IUser) {
     this.state.acceptWebSocket(webSocket, [roomId]);
     const game = this.rooms.get(roomId);
-    console.log("user count ->", game?.users.size);
-    webSocket.send("welcome to game room " + roomId + " " + user.name);
-    const existingUser = this.rooms.get(roomId)?.users.get(user.name);
+    if (!game) return;
+    this.users.set(webSocket, { ws: webSocket, data: user, room: roomId });
 
-    if (!existingUser) {
-      this.users.set(webSocket, {
-        data: user,
-        room: roomId,
-        ws: webSocket,
-      });
-      this.rooms.get(roomId)?.addUser(user, webSocket);
-      webSocket.send(
-        JSON.stringify(this.rooms.get(roomId)?.users.get(user.name))
-      );
-    }
+    const allCoordinatesAnnouncement = game.userCoordinates();
+    webSocket.send(JSON.stringify(allCoordinatesAnnouncement));
+
+    const newUserAnnouncement = game.addUser(user, webSocket);
+    this.broadcast(roomId, JSON.stringify(newUserAnnouncement));
   }
 
   async webSocketMessage(ws: WebSocket, message: String | ArrayBuffer) {
-    console.log("message", message);
     const input = message.toString();
     const msg = JSON.parse(input) as Inputs;
     const player = this.users.get(ws) as Player;
     const game = this.rooms.get(player.room);
     if (!game) return;
 
-    if (msg.type === "getAll") {
-      ws.send(JSON.stringify(game.getScores()));
-    }
-
     if (msg.type === "move" && Object.values(Directions).includes(msg.data)) {
       game.move(player.data, msg.data);
       const user = game.getUser(player.data.name);
-      ws.send(
-        "You moved " +
-          msg.data +
-          " direction." +
-          "new coordinates -> " +
-          JSON.stringify({
-            x: user?.x,
-            y: user?.y,
-          })
-      );
+      ws.send(JSON.stringify(user?.name));
+      if (!user) return;
+
+      const moveAnnouncement = game.move(player.data, msg.data);
+      this.broadcast(player.room, JSON.stringify(moveAnnouncement));
     }
-
-    /*     if (msg === "w") {
-      console.log("move up");
-      this.rooms.get(player.room)?.moveUp(player.data);
-
-      ws.send(
-        JSON.stringify(this.rooms.get(player.room)?.users.get(player.data.name))
-      );
-    }
-
-    if (msg === "s") {
-      console.log("move down");
-      this.rooms.get(player.room)?.moveDown(player.data);
-
-      ws.send(
-        JSON.stringify(this.rooms.get(player.room)?.users.get(player.data.name))
-      );
-    }
-
-    if (msg === "a") {
-      console.log("move left");
-      this.rooms.get(player.room)?.moveLeft(player.data);
-
-      ws.send(
-        JSON.stringify(this.rooms.get(player.room)?.users.get(player.data.name))
-      );
-    }
-
-    if (msg === "d") {
-      console.log("move right");
-      this.rooms.get(player.room)?.moveRight(player.data);
-      ws.send(
-        JSON.stringify(this.rooms.get(player.room)?.users.get(player.data.name))
-        );
-      }
-      */
   }
 
   async webSocketClose(
@@ -148,24 +83,20 @@ export class GameDurableObject {
     reason: string,
     wasClean: boolean
   ) {
+    ws.send("You have been disconnected");
     const player = this.users.get(ws) as Player;
     const game = this.rooms.get(player.room);
-
+    const room = player.room;
     if (!game) return;
 
-    ws.send(
-      JSON.stringify({
-        type: "Your score is deleted",
-        user: player.data.name,
-        score: game.users.get(player.data.name)?.score,
-        code,
-        closeReason: reason,
-        wasClean,
-      })
-    );
-    if (wasClean === true) {
-      game.removeUser(player.data);
-      this.users.delete(ws);
+    const removeUserAnnouncement = game.removeUser(player.data);
+    this.broadcast(room, JSON.stringify(removeUserAnnouncement));
+
+    this.users.delete(ws);
+    if (game.users.size === 0) {
+      game.users.clear();
+      game.status = "ended";
+      this.rooms.delete(player.room);
     }
   }
 
@@ -179,6 +110,8 @@ export class GameDurableObject {
 
     game.removeUser(player.data);
     this.users.delete(ws);
+    const removeUserAnnouncement = game.removeUser(player.data);
+    this.broadcast(player.room, JSON.stringify(removeUserAnnouncement));
   }
 
   async broadcast(roomId: string, message: string) {
