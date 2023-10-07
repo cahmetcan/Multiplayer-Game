@@ -9,8 +9,8 @@ For a demo of the project, you can visit [this link](https://purejs-game-fronten
 
 ## How client logic works
 
-![58FEAC45-45D3-44CE-9C78-EE036985ED62](https://github.com/cahmetcan/2D-Game-pure-js/assets/92582302/47bab024-0324-47d6-9781-fca38848f3f0)
+![58FEAC45-45D3-44CE-9C78-EE036985ED62](https://github.com/cahmetcan/Multiplayer-Game/assets/92582302/687cceee-2261-43bd-a8d5-dc96f7f9b12b)
 
 ## How backend service works
 
-![0F8BA34A-1ADA-43F9-8259-7621EFB26601](https://github.com/cahmetcan/2D-Game-pure-js/assets/92582302/04d0d481-a16f-4e4a-8353-cd1b6d36272f)
+![0F8BA34A-1ADA-43F9-8259-7621EFB26601](https://github.com/cahmetcan/Multiplayer-Game/assets/92582302/250ca56e-f21e-4d58-b9af-9df84c300c6f)
